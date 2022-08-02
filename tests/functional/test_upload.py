@@ -88,9 +88,11 @@ class BaseUploadTest(BaseGeneralInterfaceTest):
                 data=params['Body']
             )
             self.client.meta.events.emit(
-                'request-created.s3.%s' % model.name,
-                request=request, operation_name=model.name
+                f'request-created.s3.{model.name}',
+                request=request,
+                operation_name=model.name,
             )
+
             self.sent_bodies.append(self._stream_body(params['Body']))
 
     def _stream_body(self, body):
@@ -144,7 +146,7 @@ class TestNonMultipartUpload(BaseUploadTest):
             'Body': ANY, 'Bucket': self.bucket, 'Key': self.key
         }
         if extra_expected_params:
-            expected_params.update(extra_expected_params)
+            expected_params |= extra_expected_params
         upload_response = self.create_stubbed_responses()[0]
         upload_response['expected_params'] = expected_params
         self.stubber.add_response(**upload_response)
@@ -321,7 +323,7 @@ class TestMultipartUpload(BaseUploadTest):
             self, extra_expected_params=None):
         expected_params = {'Bucket': self.bucket, 'Key': self.key}
         if extra_expected_params:
-            expected_params.update(extra_expected_params)
+            expected_params |= extra_expected_params
         response = self.create_stubbed_responses()[0]
         response['expected_params'] = expected_params
         self.stubber.add_response(**response)
@@ -340,7 +342,7 @@ class TestMultipartUpload(BaseUploadTest):
                 'PartNumber': i + 1,
             }
             if extra_expected_params:
-                expected_params.update(extra_expected_params)
+                expected_params |= extra_expected_params
             upload_part_response['expected_params'] = expected_params
             self.stubber.add_response(**upload_part_response)
 
@@ -358,7 +360,7 @@ class TestMultipartUpload(BaseUploadTest):
             }
         }
         if extra_expected_params:
-            expected_params.update(extra_expected_params)
+            expected_params |= extra_expected_params
         response = self.create_stubbed_responses()[-1]
         response['expected_params'] = expected_params
         self.stubber.add_response(**response)

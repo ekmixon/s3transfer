@@ -139,7 +139,7 @@ class TestProcessPoolDownloader(unittest.TestCase):
         self.assert_contents(other_file, self.remote_contents)
 
     def test_download_file_ranged_download(self):
-        half_of_content_length = int(len(self.remote_contents)/2)
+        half_of_content_length = len(self.remote_contents) // 2
         self.stubbed_client.add_response(
             'head_object', {'ContentLength': len(self.remote_contents)})
         self.stubbed_client.add_response(
@@ -203,7 +203,7 @@ class TestProcessPoolDownloader(unittest.TestCase):
                 expected_size=len(self.remote_contents))
         self.assertFalse(os.path.exists(self.filename))
         # Any tempfile should have been erased as well
-        possible_matches = glob.glob('%s*' % self.filename + os.extsep)
+        possible_matches = glob.glob(f'{self.filename}*' + os.extsep)
         self.assertEqual(possible_matches, [])
 
     def test_validates_extra_args(self):

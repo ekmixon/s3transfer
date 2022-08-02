@@ -363,8 +363,7 @@ class ProcessPoolDownloader(object):
         call_args = CallArgs(
             bucket=bucket, key=key, filename=filename, extra_args=extra_args,
             expected_size=expected_size)
-        future = self._get_transfer_future(transfer_id, call_args)
-        return future
+        return self._get_transfer_future(transfer_id, call_args)
 
     def shutdown(self):
         """Shutdown the downloader
@@ -377,9 +376,11 @@ class ProcessPoolDownloader(object):
         return self
 
     def __exit__(self, exc_type, exc_value, *args):
-        if isinstance(exc_value, KeyboardInterrupt):
-            if self._transfer_monitor is not None:
-                self._transfer_monitor.notify_cancel_all_in_progress()
+        if (
+            isinstance(exc_value, KeyboardInterrupt)
+            and self._transfer_monitor is not None
+        ):
+            self._transfer_monitor.notify_cancel_all_in_progress()
         self.shutdown()
 
     def _start_if_needed(self):
@@ -404,9 +405,7 @@ class ProcessPoolDownloader(object):
     def _get_transfer_future(self, transfer_id, call_args):
         meta = ProcessPoolTransferMeta(
             call_args=call_args, transfer_id=transfer_id)
-        future = ProcessPoolTransferFuture(
-            monitor=self._transfer_monitor, meta=meta)
-        return future
+        return ProcessPoolTransferFuture(monitor=self._transfer_monitor, meta=meta)
 
     def _start_transfer_monitor_manager(self):
         logger.debug('Starting the TransferMonitorManager.')
@@ -555,7 +554,7 @@ class ClientFactory(object):
         if not client_config.user_agent_extra:
             client_config.user_agent_extra = PROCESS_USER_AGENT
         else:
-            client_config.user_agent_extra += " " + PROCESS_USER_AGENT
+            client_config.user_agent_extra += f" {PROCESS_USER_AGENT}"
         self._client_kwargs['config'] = client_config
 
     def create_client(self):
@@ -612,8 +611,7 @@ class TransferMonitor(object):
             failure.
         """
         self._transfer_states[transfer_id].wait_till_done()
-        exception = self._transfer_states[transfer_id].exception
-        if exception:
+        if exception := self._transfer_states[transfer_id].exception:
             raise exception
         return None
 
@@ -834,7 +832,7 @@ class GetObjectSubmitter(BaseS3TransferProcess):
             range_parameter = calculate_range_parameter(
                 part_size, i, num_parts)
             get_object_kwargs = {'Range': range_parameter}
-            get_object_kwargs.update(download_file_request.extra_args)
+            get_object_kwargs |= download_file_request.extra_args
             self._submit_get_object_job(
                 transfer_id=download_file_request.transfer_id,
                 bucket=download_file_request.bucket,

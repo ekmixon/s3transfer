@@ -91,10 +91,11 @@ class TestUpload(BaseTransferManagerIntegTest):
         max_allowed_exit_time = 5
         actual_time_to_exit = end_time - start_time
         self.assertLess(
-            actual_time_to_exit, max_allowed_exit_time,
-            "Failed to exit under %s. Instead exited in %s." % (
-                max_allowed_exit_time, actual_time_to_exit)
+            actual_time_to_exit,
+            max_allowed_exit_time,
+            f"Failed to exit under {max_allowed_exit_time}. Instead exited in {actual_time_to_exit}.",
         )
+
 
         try:
             future.result()
@@ -125,16 +126,18 @@ class TestUpload(BaseTransferManagerIntegTest):
         keynames = []
         futures = []
         for i in range(10):
-            filename = 'file' + str(i)
+            filename = f'file{str(i)}'
             keynames.append(filename)
             fileobjs.append(
                 self.get_input_fileobj(name=filename, size=1024 * 1024))
 
         try:
             with transfer_manager:
-                for i, fileobj in enumerate(fileobjs):
-                    futures.append(transfer_manager.upload(
-                        fileobj, self.bucket_name, keynames[i]))
+                futures.extend(
+                    transfer_manager.upload(fileobj, self.bucket_name, keynames[i])
+                    for i, fileobj in enumerate(fileobjs)
+                )
+
                 # Raise an exception which should cause the preceding
                 # transfer to cancel and exit quickly
                 start_time = time.time()
@@ -146,10 +149,11 @@ class TestUpload(BaseTransferManagerIntegTest):
         # This means that it should take less than a couple seconds to exit.
         max_allowed_exit_time = 5
         self.assertLess(
-            end_time - start_time, max_allowed_exit_time,
-            "Failed to exit under %s. Instead exited in %s." % (
-                max_allowed_exit_time, end_time - start_time)
+            end_time - start_time,
+            max_allowed_exit_time,
+            f"Failed to exit under {max_allowed_exit_time}. Instead exited in {end_time - start_time}.",
         )
+
 
         # Make sure at least one of the futures got cancelled
         with self.assertRaisesRegex(CancelledError, 'KeyboardInterrupt()'):

@@ -37,8 +37,9 @@ class Downloader(object):
         if args.debug:
             session.set_debug_logger('')
         with TransferManager(client) as manager:
-            getattr(self, 'download_' + file_type)(
-                manager, args.file_name, args.s3_bucket, args.s3_key)
+            getattr(self, f'download_{file_type}')(
+                manager, args.file_name, args.s3_bucket, args.s3_key
+            )
 
     def download_filename(self, manager, filename, bucket, s3_key):
         manager.download(bucket, s3_key, filename)

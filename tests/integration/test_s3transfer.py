@@ -30,13 +30,13 @@ urlopen = six.moves.urllib.request.urlopen
 
 def assert_files_equal(first, second):
     if os.path.getsize(first) != os.path.getsize(second):
-        raise AssertionError("Files are not equal: %s, %s" % (first, second))
+        raise AssertionError(f"Files are not equal: {first}, {second}")
     first_md5 = md5_checksum(first)
     second_md5 = md5_checksum(second)
     if first_md5 != second_md5:
         raise AssertionError(
-            "Files are not equal: %s(md5=%s) != %s(md5=%s)" % (
-                first, first_md5, second, second_md5))
+            f"Files are not equal: {first}(md5={first_md5}) != {second}(md5={second_md5})"
+        )
 
 
 def md5_checksum(filename):
@@ -79,7 +79,7 @@ class FileCreator(object):
         filename = self.create_file(filename, contents='')
         chunksize = 8192
         with open(filename, 'wb') as f:
-            for i in range(int(math.ceil(filesize / float(chunksize)))):
+            for _ in range(int(math.ceil(filesize / float(chunksize)))):
                 f.write(b'a' * chunksize)
         return filename
 

@@ -273,7 +273,7 @@ class TestOSUtils(BaseUtilsTest):
         try:
             OSUtils().remove_file(non_existent_file)
         except OSError as e:
-            self.fail('OSError should have been caught: %s' % e)
+            self.fail(f'OSError should have been caught: {e}')
 
     def test_remove_file_proxies_remove_file(self):
         OSUtils().remove_file(self.filename)
@@ -366,7 +366,7 @@ class TestDeferredOpenFile(BaseUtilsTest):
 
     def test_read(self):
         content = self.deferred_open_file.read(2)
-        self.assertEqual(content, self.contents[0:2])
+        self.assertEqual(content, self.contents[:2])
         content = self.deferred_open_file.read(2)
         self.assertEqual(content, self.contents[2:4])
         self.assertEqual(len(self.open_call_args), 1)
@@ -1051,9 +1051,7 @@ class TestThreadingPropertiesForSlidingWindowSemaphore(unittest.TestCase):
     def test_stress_invariants_random_order(self):
         sem = SlidingWindowSemaphore(100)
         for _ in range(10):
-            recorded = []
-            for _ in range(100):
-                recorded.append(sem.acquire('a', blocking=False))
+            recorded = [sem.acquire('a', blocking=False) for _ in range(100)]
             # Release them in randomized order.  As long as we
             # eventually free all 100, we should have all the
             # resources released.

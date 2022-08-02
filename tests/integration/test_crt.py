@@ -228,11 +228,8 @@ class TestCRTS3Transfers(BaseTransferManagerIntegTest):
             '1mb.txt', filesize=1024 * 1024)
         self.upload_file(filename, '1mb.txt')
 
-        filenames = []
         base_filename = os.path.join(self.files.rootdir, 'file')
-        for i in range(10):
-            filenames.append(base_filename + str(i))
-
+        filenames = [base_filename + str(i) for i in range(10)]
         with transfer:
             for filename in filenames:
                 transfer.download(
@@ -318,6 +315,6 @@ class TestCRTS3Transfers(BaseTransferManagerIntegTest):
             future.result()
             self.assertEqual(err.name, 'AWS_ERROR_S3_CANCELED')
 
-        possible_matches = glob.glob('%s*' % download_path)
+        possible_matches = glob.glob(f'{download_path}*')
         self.assertEqual(possible_matches, [])
         self._assert_subscribers_called()

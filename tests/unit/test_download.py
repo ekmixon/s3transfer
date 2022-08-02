@@ -388,11 +388,13 @@ class TestDownloadSubmissionTask(BaseSubmissionTaskTest):
 
     def get_call_args(self, **kwargs):
         default_call_args = {
-            'fileobj': self.filename, 'bucket': self.bucket,
-            'key': self.key, 'extra_args': self.extra_args,
-            'subscribers': self.subscribers
-        }
-        default_call_args.update(kwargs)
+            'fileobj': self.filename,
+            'bucket': self.bucket,
+            'key': self.key,
+            'extra_args': self.extra_args,
+            'subscribers': self.subscribers,
+        } | kwargs
+
         return CallArgs(**default_call_args)
 
     def wrap_executor_in_recorder(self):
@@ -422,10 +424,10 @@ class TestDownloadSubmissionTask(BaseSubmissionTaskTest):
         for i in range(0, len(self.content), chunksize):
             if i + chunksize > len(self.content):
                 stream = six.BytesIO(self.content[i:])
-                self.stubber.add_response('get_object', {'Body': stream})
             else:
                 stream = six.BytesIO(self.content[i:i+chunksize])
-                self.stubber.add_response('get_object', {'Body': stream})
+
+            self.stubber.add_response('get_object', {'Body': stream})
 
     def configure_for_ranged_get(self):
         self.config.multipart_threshold = 1
@@ -544,14 +546,17 @@ class TestGetObjectTask(BaseTaskTest):
 
     def get_download_task(self, **kwargs):
         default_kwargs = {
-            'client': self.client, 'bucket': self.bucket, 'key': self.key,
-            'fileobj': self.fileobj, 'extra_args': self.extra_args,
+            'client': self.client,
+            'bucket': self.bucket,
+            'key': self.key,
+            'fileobj': self.fileobj,
+            'extra_args': self.extra_args,
             'callbacks': self.callbacks,
             'max_attempts': self.max_attempts,
             'download_output_manager': self.download_output_manager,
             'io_chunksize': self.io_chunksize,
-        }
-        default_kwargs.update(kwargs)
+        } | kwargs
+
         self.transfer_coordinator.set_status_to_queued()
         return self.get_task(self.task_cls, main_kwargs=default_kwargs)
 
@@ -595,9 +600,9 @@ class TestGetObjectTask(BaseTaskTest):
         task()
 
         self.stubber.assert_no_pending_responses()
-        expected_contents = []
-        for i in range(len(self.content)):
-            expected_contents.append((i, bytes(self.content[i:i+1])))
+        expected_contents = [
+            (i, bytes(self.content[i : i + 1])) for i in range(len(self.content))
+        ]
 
         self.assert_io_writes(expected_contents)
 
@@ -682,17 +687,15 @@ class TestGetObjectTask(BaseTaskTest):
         task()
 
         self.stubber.assert_no_pending_responses()
-        expected_contents = []
-        # This is the content initially read in before the retry hit on the
-        # second read()
-        expected_contents.append((0, bytes(self.content[0:1])))
-
+        expected_contents = [(0, bytes(self.content[:1]))]
         # The rest of the content should be the entire set of data partitioned
         # out based on the one byte stream chunk size. Note the second
         # element in the list should be a copy of the first element since
         # a retryable exception happened in between.
-        for i in range(len(self.content)):
-            expected_contents.append((i, bytes(self.content[i:i+1])))
+        expected_contents.extend(
+            (i, bytes(self.content[i : i + 1])) for i in range(len(self.content))
+        )
+
         self.assert_io_writes(expected_contents)
 
     def test_cancels_out_of_queueing(self):
@@ -838,24 +841,18 @@ class TestDownloadChunkIterator(unittest.TestCase):
     def test_iter(self):
         content = b'my content'
         body = six.BytesIO(content)
-        ref_chunks = []
-        for chunk in DownloadChunkIterator(body, len(content)):
-            ref_chunks.append(chunk)
+        ref_chunks = list(DownloadChunkIterator(body, len(content)))
         self.assertEqual(ref_chunks, [b'my content'])
 
     def test_iter_chunksize(self):
         content = b'1234'
         body = six.BytesIO(content)
-        ref_chunks = []
-        for chunk in DownloadChunkIterator(body, 3):
-            ref_chunks.append(chunk)
+        ref_chunks = list(DownloadChunkIterator(body, 3))
         self.assertEqual(ref_chunks, [b'123', b'4'])
 
     def test_empty_content(self):
         body = six.BytesIO(b'')
-        ref_chunks = []
-        for chunk in DownloadChunkIterator(body, 3):
-            ref_chunks.append(chunk)
+        ref_chunks = list(DownloadChunkIterator(body, 3))
         self.assertEqual(ref_chunks, [b''])
 
 

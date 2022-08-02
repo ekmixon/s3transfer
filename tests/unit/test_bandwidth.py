@@ -124,10 +124,10 @@ class TestBandwidthLimitedStream(BaseBandwidthLimitTest):
         )
 
     def get_unique_consume_request_tokens(self):
-        return set(
-            call_args[0][1] for call_args in
-            self.leaky_bucket.consume.call_args_list
-        )
+        return {
+            call_args[0][1]
+            for call_args in self.leaky_bucket.consume.call_args_list
+        }
 
     def test_read(self):
         with open(self.filename, 'rb') as f:

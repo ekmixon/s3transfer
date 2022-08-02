@@ -100,7 +100,7 @@ class BaseCopyTest(BaseGeneralInterfaceTest):
 
         # If the length of copy responses is greater than one then it is
         # a multipart copy.
-        copy_responses = stubbed_responses[0:1]
+        copy_responses = stubbed_responses[:1]
         if len(stubbed_responses) > 1:
             copy_responses = stubbed_responses[1:-1]
 
@@ -372,21 +372,20 @@ class TestMultipartCopy(BaseCopyTest):
             'Key': self.key,
         }
 
-        expected_copy_params = []
         # Add expected parameters to the copy part
         ranges = ['bytes=0-5242879', 'bytes=5242880-10485759',
                   'bytes=10485760-13107199']
-        for i, range_val in enumerate(ranges):
-            expected_copy_params.append(
-                {
-                    'Bucket': self.bucket,
-                    'Key': self.key,
-                    'CopySource': self.copy_source,
-                    'UploadId': upload_id,
-                    'PartNumber': i + 1,
-                    'CopySourceRange': range_val
-                }
-            )
+        expected_copy_params = [
+            {
+                'Bucket': self.bucket,
+                'Key': self.key,
+                'CopySource': self.copy_source,
+                'UploadId': upload_id,
+                'PartNumber': i + 1,
+                'CopySourceRange': range_val,
+            }
+            for i, range_val in enumerate(ranges)
+        ]
 
         # Add expected parameters for the complete multipart
         expected_complete_mpu_params = {
@@ -412,7 +411,7 @@ class TestMultipartCopy(BaseCopyTest):
 
         expected_params_to_update = []
         for operation_type in operation_types:
-            add_copy_kwargs_key = 'expected_' + operation_type + '_params'
+            add_copy_kwargs_key = f'expected_{operation_type}_params'
             expected_params = add_copy_kwargs[add_copy_kwargs_key]
             if isinstance(expected_params, list):
                 expected_params_to_update.extend(expected_params)

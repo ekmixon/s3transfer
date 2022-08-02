@@ -64,8 +64,8 @@ class TestCRTTransferManager(unittest.TestCase):
         self.key = "test_key"
         self.files = FileCreator()
         self.filename = self.files.create_file('myfile', 'my content')
-        self.expected_path = "/" + self.bucket + "/" + self.key
-        self.expected_host = "s3.%s.amazonaws.com" % (self.region)
+        self.expected_path = f"/{self.bucket}/{self.key}"
+        self.expected_host = f"s3.{self.region}.amazonaws.com"
         self.s3_request = mock.Mock(awscrt.s3.S3Request)
         self.s3_crt_client = mock.Mock(awscrt.s3.S3Client)
         self.s3_crt_client.make_request.return_value = self.s3_request
@@ -176,7 +176,7 @@ class TestCRTTransferManager(unittest.TestCase):
         max_request_processes = 128  # the hard coded max processes
         all_concurrent = max_request_processes + 1
         threads = []
-        for i in range(0, all_concurrent):
+        for _ in range(all_concurrent):
             thread = submitThread(self.transfer_manager, futures, callargs)
             thread.start()
             threads.append(thread)

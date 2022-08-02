@@ -186,11 +186,11 @@ class Summarizer(object):
         return tabulate(
             table,
             headers=[
-                'Metric over %s run(s)' % (self.total_files),
+                f'Metric over {self.total_files} run(s)',
                 'Mean',
-                'Standard Deviation'
+                'Standard Deviation',
             ],
-            tablefmt="grid"
+            tablefmt="grid",
         )
 
     def summarize_as_json(self):

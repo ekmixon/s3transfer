@@ -47,8 +47,7 @@ class InterruptionError(Exception):
 
 class OSUtilsExceptionOnFileSize(OSUtils):
     def get_file_size(self, filename):
-        raise AssertionError(
-            "The file %s should not have been stated" % filename)
+        raise AssertionError(f"The file {filename} should not have been stated")
 
 
 class BaseUploadTest(BaseTaskTest):
@@ -130,7 +129,7 @@ class TestInterruptReader(BaseUploadTest):
         with open(self.filename, 'rb') as f:
             reader = InterruptReader(f, self.transfer_coordinator)
             # Read some bytes to show it can be read.
-            self.assertEqual(reader.read(1), self.content[0:1])
+            self.assertEqual(reader.read(1), self.content[:1])
             # Then set an exception in the transfer coordinator
             self.transfer_coordinator.set_exception(InterruptionError())
             # The next read should have the exception propograte
@@ -252,8 +251,7 @@ class TestUploadFilenameInputManager(BaseUploadInputManagerTest):
         # respective part number.
         part_iterator = self.upload_input_manager.yield_upload_part_bodies(
             self.future, self.config.multipart_chunksize)
-        expected_part_number = 1
-        for part_number, read_file_chunk in part_iterator:
+        for expected_part_number, (part_number, read_file_chunk) in enumerate(part_iterator, start=1):
             # Ensure that the part number is as expected
             self.assertEqual(part_number, expected_part_number)
             read_file_chunk.enable_callback()
@@ -262,8 +260,6 @@ class TestUploadFilenameInputManager(BaseUploadInputManagerTest):
                 self.assertEqual(
                     read_file_chunk.read(),
                     self._get_expected_body_for_part(part_number))
-            expected_part_number += 1
-
         # All of the file-like object should also have been wrapped with the
         # on_queued callbacks to track the amount of bytes being transferred.
         self.assertEqual(
@@ -456,11 +452,13 @@ class TestUploadSubmissionTask(BaseSubmissionTaskTest):
 
     def get_call_args(self, **kwargs):
         default_call_args = {
-            'fileobj': self.filename, 'bucket': self.bucket,
-            'key': self.key, 'extra_args': self.extra_args,
-            'subscribers': self.subscribers
-        }
-        default_call_args.update(kwargs)
+            'fileobj': self.filename,
+            'bucket': self.bucket,
+            'key': self.key,
+            'extra_args': self.extra_args,
+            'subscribers': self.subscribers,
+        } | kwargs
+
         return CallArgs(**default_call_args)
 
     def add_multipart_upload_stubbed_responses(self):

@@ -43,12 +43,11 @@ class InMemoryOSLayer(OSUtils):
         return closing(six.BytesIO(self.filemap[filename]))
 
     def open(self, filename, mode):
-        if 'wb' in mode:
-            fileobj = six.BytesIO()
-            self.filemap[filename] = fileobj
-            return closing(fileobj)
-        else:
+        if 'wb' not in mode:
             return closing(self.filemap[filename])
+        fileobj = six.BytesIO()
+        self.filemap[filename] = fileobj
+        return closing(fileobj)
 
     def remove_file(self, filename):
         if filename in self.filemap:
@@ -73,10 +72,7 @@ class SequentialExecutor(object):
     # The real map() interface actually takes *args, but we specifically do
     # _not_ use this interface.
     def map(self, function, args):
-        results = []
-        for arg in args:
-            results.append(function(arg))
-        return results
+        return [function(arg) for arg in args]
 
     def submit(self, function):
         future = futures.Future()

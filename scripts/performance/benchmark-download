@@ -52,18 +52,14 @@ def human_readable_to_bytes(value):
     :returns: The converted value in bytes as an integer
     """
     value = value.lower()
-    if value[-2:] == 'ib':
-        # Assume IEC suffix.
-        suffix = value[-3:].lower()
-    else:
-        suffix = value[-2:].lower()
+    suffix = value[-3:].lower() if value[-2:] == 'ib' else value[-2:].lower()
     has_size_identifier = (
         len(value) >= 2 and suffix in SIZE_SUFFIX)
     if not has_size_identifier:
         try:
             return int(value)
         except ValueError:
-            raise ValueError("Invalid size value: %s" % value)
+            raise ValueError(f"Invalid size value: {value}")
     else:
         multiplier = SIZE_SUFFIX[suffix]
         return int(value[:-len(suffix)]) * multiplier

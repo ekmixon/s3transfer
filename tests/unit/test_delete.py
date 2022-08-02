@@ -24,10 +24,12 @@ class TestDeleteObjectTask(BaseTaskTest):
 
     def get_delete_task(self, **kwargs):
         default_kwargs = {
-            'client': self.client, 'bucket': self.bucket, 'key': self.key,
+            'client': self.client,
+            'bucket': self.bucket,
+            'key': self.key,
             'extra_args': self.extra_args,
-        }
-        default_kwargs.update(kwargs)
+        } | kwargs
+
         return self.get_task(DeleteObjectTask, main_kwargs=default_kwargs)
 
     def test_main(self):

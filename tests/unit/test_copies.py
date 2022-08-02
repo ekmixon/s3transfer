@@ -33,12 +33,15 @@ class BaseCopyTaskTest(BaseTaskTest):
 class TestCopyObjectTask(BaseCopyTaskTest):
     def get_copy_task(self, **kwargs):
         default_kwargs = {
-            'client': self.client, 'copy_source': self.copy_source,
-            'bucket': self.bucket, 'key': self.key,
-            'extra_args': self.extra_args, 'callbacks': self.callbacks,
-            'size': self.size
-        }
-        default_kwargs.update(kwargs)
+            'client': self.client,
+            'copy_source': self.copy_source,
+            'bucket': self.bucket,
+            'key': self.key,
+            'extra_args': self.extra_args,
+            'callbacks': self.callbacks,
+            'size': self.size,
+        } | kwargs
+
         return self.get_task(CopyObjectTask, main_kwargs=default_kwargs)
 
     def test_main(self):
@@ -96,13 +99,17 @@ class TestCopyPartTask(BaseCopyTaskTest):
 
     def get_copy_task(self, **kwargs):
         default_kwargs = {
-            'client': self.client, 'copy_source': self.copy_source,
-            'bucket': self.bucket, 'key': self.key,
-            'upload_id': self.upload_id, 'part_number': self.part_number,
-            'extra_args': self.extra_args, 'callbacks': self.callbacks,
-            'size': self.size
-        }
-        default_kwargs.update(kwargs)
+            'client': self.client,
+            'copy_source': self.copy_source,
+            'bucket': self.bucket,
+            'key': self.key,
+            'upload_id': self.upload_id,
+            'part_number': self.part_number,
+            'extra_args': self.extra_args,
+            'callbacks': self.callbacks,
+            'size': self.size,
+        } | kwargs
+
         return self.get_task(CopyPartTask, main_kwargs=default_kwargs)
 
     def test_main(self):

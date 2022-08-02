@@ -24,7 +24,7 @@ if sys.platform.startswith('win'):
         try:
             os.remove(new_filename)
         except OSError as e:
-            if not e.errno == errno.ENOENT:
+            if e.errno != errno.ENOENT:
                 # We only want to a ignore trying to remove
                 # a file that does not exist.  If it fails
                 # for any other reason we should be propagating

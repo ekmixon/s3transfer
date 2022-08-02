@@ -155,10 +155,11 @@ class CopySubmissionTask(SubmissionTask):
 
         # Submit the request to create a multipart upload and make sure it
         # does not include any of the arguments used for copy part.
-        create_multipart_extra_args = {}
-        for param, val in call_args.extra_args.items():
-            if param not in self.CREATE_MULTIPART_ARGS_BLACKLIST:
-                create_multipart_extra_args[param] = val
+        create_multipart_extra_args = {
+            param: val
+            for param, val in call_args.extra_args.items()
+            if param not in self.CREATE_MULTIPART_ARGS_BLACKLIST
+        }
 
         create_multipart_future = self._transfer_coordinator.submit(
             request_executor,

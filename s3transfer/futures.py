@@ -175,8 +175,7 @@ class TransferCoordinator(object):
         self._failure_cleanups_lock = threading.Lock()
 
     def __repr__(self):
-        return '%s(transfer_id=%s)' % (
-            self.__class__.__name__, self.transfer_id)
+        return f'{self.__class__.__name__}(transfer_id={self.transfer_id})'
 
     @property
     def exception(self):
@@ -273,11 +272,9 @@ class TransferCoordinator(object):
         """
         with self._lock:
             if not self.done():
-                should_announce_done = False
                 logger.debug('%s cancel(%s) called', self, msg)
                 self._exception = exc_type(msg)
-                if self._status == 'not-started':
-                    should_announce_done = True
+                should_announce_done = self._status == 'not-started'
                 self._status = 'cancelled'
                 if should_announce_done:
                     self.announce_done()
@@ -314,9 +311,9 @@ class TransferCoordinator(object):
         :returns: A future representing the submitted task
         """
         logger.debug(
-            "Submitting task %s to executor %s for transfer request: %s." % (
-                task, executor, self.transfer_id)
+            f"Submitting task {task} to executor {executor} for transfer request: {self.transfer_id}."
         )
+
         future = executor.submit(task, tag=tag)
         # Add this created future to the list of associated future just
         # in case it is needed during cleanups.
@@ -392,10 +389,8 @@ class TransferCoordinator(object):
     def _run_callback(self, callback):
         try:
             callback()
-        # We do not want a callback interrupting the process, especially
-        # in the failure cleanups. So log and catch, the exception.
         except Exception:
-            logger.debug("Exception raised in %s." % callback, exc_info=True)
+            logger.debug(f"Exception raised in {callback}.", exc_info=True)
 
 
 class BoundedExecutor(object):

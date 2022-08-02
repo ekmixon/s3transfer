@@ -83,13 +83,10 @@ def calculate_range_parameter(part_size, part_index, num_parts,
     # Used to calculate the Range parameter
     start_range = part_index * part_size
     if part_index == num_parts - 1:
-        end_range = ''
-        if total_size is not None:
-            end_range = str(total_size - 1)
+        end_range = str(total_size - 1) if total_size is not None else ''
     else:
         end_range = start_range + part_size - 1
-    range_param = 'bytes=%s-%s' % (start_range, end_range)
-    return range_param
+    return f'bytes={start_range}-{end_range}'
 
 
 def get_callbacks(transfer_future, callback_type):
@@ -111,7 +108,7 @@ def get_callbacks(transfer_future, callback_type):
     """
     callbacks = []
     for subscriber in transfer_future.meta.call_args.subscribers:
-        callback_name = 'on_' + callback_type
+        callback_name = f'on_{callback_type}'
         if hasattr(subscriber, callback_name):
             callbacks.append(
                 functools.partial(
@@ -149,11 +146,11 @@ def get_filtered_dict(original_dict, whitelisted_keys):
     :returns: A dictionary containing key/values from the original dictionary
         whose key was included in the whitelist
     """
-    filtered_dict = {}
-    for key, value in original_dict.items():
-        if key in whitelisted_keys:
-            filtered_dict[key] = value
-    return filtered_dict
+    return {
+        key: value
+        for key, value in original_dict.items()
+        if key in whitelisted_keys
+    }
 
 
 class CallArgs(object):
@@ -180,8 +177,7 @@ class FunctionContainer(object):
         self._kwargs = kwargs
 
     def __repr__(self):
-        return 'Function: %s with args %s and kwargs %s' % (
-            self._func, self._args, self._kwargs)
+        return f'Function: {self._func} with args {self._args} and kwargs {self._kwargs}'
 
     def __call__(self):
         return self._func(*self._args, **self._kwargs)
@@ -269,7 +265,7 @@ class OSUtils(object):
     def rename_file(self, current_filename, new_filename):
         rename_file(current_filename, new_filename)
 
-    def is_special_file(cls, filename):
+    def is_special_file(self, filename):
         """Checks to see if a file is a special UNIX file.
 
         It checks if the file is a character special device, block special
@@ -291,12 +287,7 @@ class OSUtils(object):
         if stat.S_ISBLK(mode):
             return True
         # Named pipe / FIFO
-        if stat.S_ISFIFO(mode):
-            return True
-        # Socket.
-        if stat.S_ISSOCK(mode):
-            return True
-        return False
+        return True if stat.S_ISFIFO(mode) else bool(stat.S_ISSOCK(mode))
 
     def get_temp_filename(self, filename):
         suffix = os.extsep + random_file_extension()
@@ -365,9 +356,7 @@ class DeferredOpenFile(object):
         self._fileobj.seek(where, whence)
 
     def tell(self):
-        if self._fileobj is None:
-            return self._start_byte
-        return self._fileobj.tell()
+        return self._start_byte if self._fileobj is None else self._fileobj.tell()
 
     def close(self):
         if self._fileobj:
@@ -473,10 +462,7 @@ class ReadFileChunk(object):
 
     def read(self, amount=None):
         amount_left = max(self._size - self._amount_read, 0)
-        if amount is None:
-            amount_to_read = amount_left
-        else:
-            amount_to_read = min(amount_left, amount)
+        amount_to_read = amount_left if amount is None else min(amount_left, amount)
         data = self._fileobj.read(amount_to_read)
         self._amount_read += len(data)
         if self._callbacks is not None and self._callbacks_enabled:
@@ -502,8 +488,7 @@ class ReadFileChunk(object):
     def seek(self, where, whence=0):
         if whence not in (0, 1, 2):
             # Mimic io's error for invalid whence values
-            raise ValueError(
-                "invalid whence (%s, should be 0, 1 or 2)" % whence)
+            raise ValueError(f"invalid whence ({whence}, should be 0, 1 or 2)")
 
         # Recalculate where based on chunk attributes so seek from file
         # start (whence=0) is always used
@@ -606,7 +591,7 @@ class TaskSemaphore(object):
             class but is needed for API compatibility with the
             SlidingWindowSemaphore implementation.
         """
-        logger.debug("Releasing acquire %s/%s" % (tag, acquire_token))
+        logger.debug(f"Releasing acquire {tag}/{acquire_token}")
         self._semaphore.release()
 
 
@@ -653,9 +638,8 @@ class SlidingWindowSemaphore(TaskSemaphore):
             if self._count == 0:
                 if not blocking:
                     raise NoResourcesAvailable("Cannot acquire tag '%s'" % tag)
-                else:
-                    while self._count == 0:
-                        self._condition.wait()
+                while self._count == 0:
+                    self._condition.wait()
             # self._count is no longer zero.
             # First, check if this is the first time we're seeing this tag.
             sequence_number = self._tag_sequences[tag]
@@ -674,7 +658,7 @@ class SlidingWindowSemaphore(TaskSemaphore):
         self._condition.acquire()
         try:
             if tag not in self._tag_sequences:
-                raise ValueError("Attempted to release unknown tag: %s" % tag)
+                raise ValueError(f"Attempted to release unknown tag: {tag}")
             max_sequence = self._tag_sequences[tag]
             if self._lowest_sequence[tag] == sequence_number:
                 # We can immediately process this request and free up
@@ -683,13 +667,10 @@ class SlidingWindowSemaphore(TaskSemaphore):
                 self._count += 1
                 self._condition.notify()
                 queued = self._pending_release.get(tag, [])
-                while queued:
-                    if self._lowest_sequence[tag] == queued[-1]:
-                        queued.pop()
-                        self._lowest_sequence[tag] += 1
-                        self._count += 1
-                    else:
-                        break
+                while queued and self._lowest_sequence[tag] == queued[-1]:
+                    queued.pop()
+                    self._lowest_sequence[tag] += 1
+                    self._count += 1
             elif self._lowest_sequence[tag] < sequence_number < max_sequence:
                 # We can't do anything right now because we're still waiting
                 # for the min sequence for the tag to be released.  We have

@@ -368,13 +368,11 @@ class MultipartUploader(object):
         self._executor_cls = executor_cls
 
     def _extra_upload_part_args(self, extra_args):
-        # Only the args in UPLOAD_PART_ARGS actually need to be passed
-        # onto the upload_part calls.
-        upload_parts_args = {}
-        for key, value in extra_args.items():
-            if key in self.UPLOAD_PART_ARGS:
-                upload_parts_args[key] = value
-        return upload_parts_args
+        return {
+            key: value
+            for key, value in extra_args.items()
+            if key in self.UPLOAD_PART_ARGS
+        }
 
     def upload_file(self, filename, bucket, key, callback, extra_args):
         response = self._client.create_multipart_upload(Bucket=bucket,
@@ -389,8 +387,9 @@ class MultipartUploader(object):
             self._client.abort_multipart_upload(
                 Bucket=bucket, Key=key, UploadId=upload_id)
             raise S3UploadFailedError(
-                "Failed to upload %s to %s: %s" % (
-                    filename, '/'.join([bucket, key]), e))
+                f"Failed to upload {filename} to {'/'.join([bucket, key])}: {e}"
+            )
+
         self._client.complete_multipart_upload(
             Bucket=bucket, Key=key, UploadId=upload_id,
             MultipartUpload={'Parts': parts})
@@ -407,8 +406,7 @@ class MultipartUploader(object):
             upload_partial = functools.partial(
                 self._upload_one_part, filename, bucket, key, upload_id,
                 part_size, upload_parts_extra_args, callback)
-            for part in executor.map(upload_partial, range(1, num_parts + 1)):
-                parts.append(part)
+            parts.extend(iter(executor.map(upload_partial, range(1, num_parts + 1))))
         return parts
 
     def _upload_one_part(self, filename, bucket, key,
@@ -505,12 +503,8 @@ class MultipartDownloader(object):
 
     def _calculate_range_param(self, part_size, part_index, num_parts):
         start_range = part_index * part_size
-        if part_index == num_parts - 1:
-            end_range = ''
-        else:
-            end_range = start_range + part_size - 1
-        range_param = 'bytes=%s-%s' % (start_range, end_range)
-        return range_param
+        end_range = '' if part_index == num_parts - 1 else start_range + part_size - 1
+        return f'bytes={start_range}-{end_range}'
 
     def _download_range(self, bucket, key, filename,
                         part_size, num_parts, callback, part_index):

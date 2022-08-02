@@ -85,9 +85,7 @@ class Task(object):
         ]
         main_kwargs_to_display = self._get_kwargs_with_params_to_include(
             self._main_kwargs, params_to_display)
-        return '%s(transfer_id=%s, %s)' % (
-            self.__class__.__name__, self._transfer_coordinator.transfer_id,
-            main_kwargs_to_display)
+        return f'{self.__class__.__name__}(transfer_id={self._transfer_coordinator.transfer_id}, {main_kwargs_to_display})'
 
     @property
     def transfer_id(self):
@@ -95,19 +93,12 @@ class Task(object):
         return self._transfer_coordinator.transfer_id
 
     def _get_kwargs_with_params_to_include(self, kwargs, include):
-        filtered_kwargs = {}
-        for param in include:
-            if param in kwargs:
-                filtered_kwargs[param] = kwargs[param]
-        return filtered_kwargs
+        return {param: kwargs[param] for param in include if param in kwargs}
 
     def _get_kwargs_with_params_to_exclude(self, kwargs, exclude):
-        filtered_kwargs = {}
-        for param, value in kwargs.items():
-            if param in exclude:
-                continue
-            filtered_kwargs[param] = value
-        return filtered_kwargs
+        return {
+            param: value for param, value in kwargs.items() if param not in exclude
+        }
 
     def __call__(self):
         """The callable to use when submitting a Task to an executor"""
@@ -143,9 +134,7 @@ class Task(object):
         kwargs_to_display = self._get_kwargs_with_params_to_exclude(
             kwargs, params_to_exclude)
         # Log what is about to be executed.
-        logger.debug(
-            "Executing task %s with kwargs %s" % (self, kwargs_to_display)
-        )
+        logger.debug(f"Executing task {self} with kwargs {kwargs_to_display}")
 
         return_value = self._main(**kwargs)
         # If the task is the final task, then set the TransferFuture's
@@ -212,10 +201,7 @@ class Task(object):
             # If the value is a list of futures, iterate though the list
             # appending on the result from each future.
             if isinstance(pending_value, list):
-                result = []
-                for future in pending_value:
-                    result.append(future.result())
-            # Otherwise if the pending_value is a future, just wait for it.
+                result = [future.result() for future in pending_value]
             else:
                 result = pending_value.result()
             # Add the retrieved value to the kwargs to be sent to the
@@ -304,7 +290,7 @@ class SubmissionTask(Task):
             # However, more futures may have been submitted as we waited so
             # we need to check again for any more associated futures.
             possibly_more_submitted_futures = \
-                self._transfer_coordinator.associated_futures
+                    self._transfer_coordinator.associated_futures
             # If the current list of submitted futures is equal to the
             # the list of associated futures for when after the wait completes,
             # we can ensure no more futures were submitted in waiting on

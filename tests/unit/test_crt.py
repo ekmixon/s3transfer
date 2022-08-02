@@ -40,8 +40,8 @@ class TestBotocoreCRTRequestSerializer(unittest.TestCase):
         self.key = "test_key"
         self.files = FileCreator()
         self.filename = self.files.create_file('myfile', 'my content')
-        self.expected_path = "/" + self.bucket + "/" + self.key
-        self.expected_host = "s3.%s.amazonaws.com" % (self.region)
+        self.expected_path = f"/{self.bucket}/{self.key}"
+        self.expected_host = f"s3.{self.region}.amazonaws.com"
 
     def tearDown(self):
         self.files.remove_all()
@@ -101,7 +101,7 @@ class TestCRTCredentialProviderAdapter(unittest.TestCase):
         self.secret_key = "secret_key"
         self.token = "token"
         self.botocore_credential_provider.load_credentials.return_value.\
-            get_frozen_credentials.return_value = ReadOnlyCredentials(
+                get_frozen_credentials.return_value = ReadOnlyCredentials(
                 self.access_key, self.secret_key, self.token)
 
     def _call_adapter_and_check(self, credentails_provider_adapter):
@@ -118,10 +118,10 @@ class TestCRTCredentialProviderAdapter(unittest.TestCase):
 
     def test_load_credentials_once(self):
         credentails_provider_adapter = \
-            s3transfer.crt.CRTCredentialProviderAdapter(
+                s3transfer.crt.CRTCredentialProviderAdapter(
                 self.botocore_credential_provider)
         called_times = 5
-        for i in range(called_times):
+        for _ in range(called_times):
             self._call_adapter_and_check(credentails_provider_adapter)
         # Assert that the load_credentails of botocore credential provider
         # will only be called once

@@ -236,9 +236,7 @@ class TestTransferMonitor(unittest.TestCase):
 
     def test_notify_cancel_all_in_progress(self):
         monitor = TransferMonitor()
-        transfer_ids = []
-        for _ in range(10):
-            transfer_ids.append(monitor.notify_new_transfer())
+        transfer_ids = [monitor.notify_new_transfer() for _ in range(10)]
         monitor.notify_cancel_all_in_progress()
         for transfer_id in transfer_ids:
             self.assertIsInstance(
@@ -326,9 +324,9 @@ class TestGetObjectSubmitter(StubbedClientTest):
             'key': self.key,
             'filename': self.filename,
             'extra_args': self.extra_args,
-            'expected_size': self.expected_size
-        }
-        kwargs.update(override_kwargs)
+            'expected_size': self.expected_size,
+        } | override_kwargs
+
         self.download_request_queue.put(DownloadFileRequest(**kwargs))
 
     def add_shutdown(self):
@@ -518,9 +516,9 @@ class TestGetObjectWorker(StubbedClientTest):
             'temp_filename': self.temp_filename,
             'extra_args': self.extra_args,
             'offset': self.offset,
-            'filename': self.final_filename
-        }
-        kwargs.update(override_kwargs)
+            'filename': self.final_filename,
+        } | override_kwargs
+
         self.queue.put(GetObjectJob(**kwargs))
 
     def add_shutdown(self):

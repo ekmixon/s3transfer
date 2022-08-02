@@ -315,8 +315,9 @@ class TestTransferCoordinator(unittest.TestCase):
         # transfer future at some point.
         self.assertEqual(
             self.transfer_coordinator.all_transfer_futures_ever_associated,
-            set([future])
+            {future},
         )
+
 
         # Make sure the future got disassociated once the future is now done
         # by looking at the currently associated futures.
@@ -379,10 +380,10 @@ class TestTransferCoordinator(unittest.TestCase):
         # Ensure the callbacks got added.
         self.assertEqual(len(self.transfer_coordinator.failure_cleanups), 2)
 
-        result_list = []
-        # Ensure they will get called in the correct order.
-        for cleanup in self.transfer_coordinator.failure_cleanups:
-            result_list.append(cleanup())
+        result_list = [
+            cleanup() for cleanup in self.transfer_coordinator.failure_cleanups
+        ]
+
         self.assertEqual(
             result_list, [(args, kwargs), (second_args, second_kwargs)])
 
@@ -392,19 +393,20 @@ class TestTransferCoordinator(unittest.TestCase):
         self.transfer_coordinator.add_associated_future(first_future)
         associated_futures = self.transfer_coordinator.associated_futures
         # The first future should be in the returned list of futures.
-        self.assertEqual(associated_futures, set([first_future]))
+        self.assertEqual(associated_futures, {first_future})
 
         second_future = object()
         # Associate another future to the transfer.
         self.transfer_coordinator.add_associated_future(second_future)
         # The association should not have mutated the returned list from
         # before.
-        self.assertEqual(associated_futures, set([first_future]))
+        self.assertEqual(associated_futures, {first_future})
 
         # Both futures should be in the returned list.
         self.assertEqual(
             self.transfer_coordinator.associated_futures,
-            set([first_future, second_future]))
+            {first_future, second_future},
+        )
 
     def test_done_callbacks_on_done(self):
         done_callback_invocations = []

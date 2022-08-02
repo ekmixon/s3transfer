@@ -50,7 +50,7 @@ class CRTCredentialProviderAdapter:
         with self._lock:
             if self._loaded_credentials is None:
                 loaded_creds = self._botocore_credential_provider\
-                    .load_credentials()
+                        .load_credentials()
                 if loaded_creds is None:
                     raise NoCredentialsError()
                 self._loaded_credentials = loaded_creds
@@ -167,9 +167,7 @@ class CRTTransferManager(object):
         return self
 
     def __exit__(self, exc_type, exc_value, *args):
-        cancel = False
-        if exc_type:
-            cancel = True
+        cancel = bool(exc_type)
         self._shutdown(cancel)
 
     def download(self, bucket, key, fileobj, extra_args=None,
@@ -386,7 +384,7 @@ class BotocoreCRTRequestSerializer(BaseCRTRequestSerializer):
         url_parts = urlsplit(aws_request.url)
         crt_path = url_parts.path
         if url_parts.query:
-            crt_path = '%s?%s' % (crt_path, url_parts.query)
+            crt_path = f'{crt_path}?{url_parts.query}'
         headers_list = []
         for name, value in aws_request.headers.items():
             if isinstance(value, str):
@@ -403,12 +401,12 @@ class BotocoreCRTRequestSerializer(BaseCRTRequestSerializer):
             else:
                 crt_body_stream = BytesIO(aws_request.body)
 
-        crt_request = awscrt.http.HttpRequest(
+        return awscrt.http.HttpRequest(
             method=aws_request.method,
             path=crt_path,
             headers=crt_headers,
-            body_stream=crt_body_stream)
-        return crt_request
+            body_stream=crt_body_stream,
+        )
 
     def _convert_to_crt_http_request(self, botocore_http_request):
         # Logic that does CRTUtils.crt_request_from_aws_request
@@ -446,17 +444,16 @@ class BotocoreCRTRequestSerializer(BaseCRTRequestSerializer):
     def serialize_http_request(self, transfer_type, future):
         botocore_http_request = self._get_botocore_http_request(
             transfer_type, future.meta.call_args)
-        crt_request = self._convert_to_crt_http_request(botocore_http_request)
-        return crt_request
+        return self._convert_to_crt_http_request(botocore_http_request)
 
 
 class FakeRawResponse(BytesIO):
     def stream(self, amt=1024, decode_content=None):
         while True:
-            chunk = self.read(amt)
-            if not chunk:
+            if chunk := self.read(amt):
+                yield chunk
+            else:
                 break
-            yield chunk
 
 
 class CRTTransferCoordinator:
@@ -503,9 +500,7 @@ class CRTTransferCoordinator:
             self._crt_future.result(timeout)
 
     def done(self):
-        if self._crt_future is None:
-            return False
-        return self._crt_future.done()
+        return False if self._crt_future is None else self._crt_future.done()
 
     def set_s3_request(self, s3_request):
         self._s3_request = s3_request
@@ -582,8 +577,7 @@ class RenameTempFileHandler:
         self._osutil = osutil
 
     def __call__(self, **kwargs):
-        error = kwargs['error']
-        if error:
+        if error := kwargs['error']:
             self._osutil.remove_file(self._temp_filename)
         else:
             try:

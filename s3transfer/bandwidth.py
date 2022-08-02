@@ -30,10 +30,8 @@ class RequestExceededException(Exception):
         """
         self.requested_amt = requested_amt
         self.retry_time = retry_time
-        msg = (
-            'Request amount %s exceeded the amount available. Retry in %s' % (
-                requested_amt, retry_time)
-        )
+        msg = f'Request amount {requested_amt} exceeded the amount available. Retry in {retry_time}'
+
         super(RequestExceededException, self).__init__(msg)
 
 
@@ -156,11 +154,6 @@ class BandwidthLimitedStream(object):
         return self._fileobj.read(amount)
 
     def _consume_through_leaky_bucket(self):
-        # NOTE: If the read amount on the stream are high, it will result
-        # in large bursty behavior as there is not an interface for partial
-        # reads. However given the read's on this abstraction are at most 256KB
-        # (via downloads), it reduces the burstiness to be small KB bursts at
-        # worst.
         while not self._transfer_coordinator.exception:
             try:
                 self._leaky_bucket.consume(
@@ -169,8 +162,7 @@ class BandwidthLimitedStream(object):
                 return
             except RequestExceededException as e:
                 self._time_utils.sleep(e.retry_time)
-        else:
-            raise self._transfer_coordinator.exception
+        raise self._transfer_coordinator.exception
 
     def signal_transferring(self):
         """Signal that data being read is being transferred to S3"""
@@ -362,9 +354,7 @@ class BandwidthRateTracker(object):
         :rtype: float
         :returns: The current tracked transfer rate
         """
-        if self._last_time is None:
-            return 0.0
-        return self._current_rate
+        return 0.0 if self._last_time is None else self._current_rate
 
     def get_projected_rate(self, amt, time_at_consumption):
         """Get the projected rate using a provided amount and time
@@ -402,13 +392,7 @@ class BandwidthRateTracker(object):
 
     def _calculate_rate(self, amt, time_at_consumption):
         time_delta = time_at_consumption - self._last_time
-        if time_delta <= 0:
-            # While it is really unlikely to see this in an actual transfer,
-            # we do not want to be returning back a negative rate or try to
-            # divide the amount by zero. So instead return back an infinite
-            # rate as the time delta is infinitesimally small.
-            return float('inf')
-        return amt / (time_delta)
+        return float('inf') if time_delta <= 0 else amt / (time_delta)
 
     def _calculate_exponential_moving_average_rate(self, amt,
                                                    time_at_consumption):

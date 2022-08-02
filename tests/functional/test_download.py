@@ -143,7 +143,7 @@ class BaseDownloadTest(BaseGeneralInterfaceTest):
         # Make sure the file exists
         self.assertTrue(os.path.exists(self.filename))
         # Make sure the random temporary file does not exist
-        possible_matches = glob.glob('%s*' % self.filename + os.extsep)
+        possible_matches = glob.glob(f'{self.filename}*' + os.extsep)
         self.assertEqual(possible_matches, [])
 
     def test_download_for_fileobj(self):
@@ -200,7 +200,7 @@ class BaseDownloadTest(BaseGeneralInterfaceTest):
             future.result()
         # Make sure the actual file and the temporary do not exist
         # by globbing for the file and any of its extensions
-        possible_matches = glob.glob('%s*' % self.filename)
+        possible_matches = glob.glob(f'{self.filename}*')
         self.assertEqual(possible_matches, [])
 
     def test_download_with_nonexistent_directory(self):
@@ -438,28 +438,20 @@ class TestRangedDownload(BaseDownloadTest):
         return [
             {
                 'method': 'head_object',
-                'service_response': {
-                    'ContentLength': len(self.content)
-                }
+                'service_response': {'ContentLength': len(self.content)},
             },
             {
                 'method': 'get_object',
-                'service_response': {
-                    'Body': six.BytesIO(self.content[0:4])
-                }
+                'service_response': {'Body': six.BytesIO(self.content[:4])},
             },
             {
                 'method': 'get_object',
-                'service_response': {
-                    'Body': six.BytesIO(self.content[4:8])
-                }
+                'service_response': {'Body': six.BytesIO(self.content[4:8])},
             },
             {
                 'method': 'get_object',
-                'service_response': {
-                    'Body': six.BytesIO(self.content[8:])
-                }
-            }
+                'service_response': {'Body': six.BytesIO(self.content[8:])},
+            },
         ]
 
     def create_expected_progress_callback_info(self):

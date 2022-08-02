@@ -459,8 +459,7 @@ class TransferManager(object):
         # for such resources
         if self.VALIDATE_SUPPORTED_BUCKET_VALUES:
             for resource, pattern in self._UNSUPPORTED_BUCKET_PATTERNS.items():
-                match = pattern.match(bucket)
-                if match:
+                if match := pattern.match(bucket):
                     raise ValueError(
                         'TransferManager methods do not support %s '
                         'resource. Use direct client calls instead.' % resource
@@ -534,7 +533,7 @@ class TransferManager(object):
             'request_executor': self._request_executor,
             'transfer_future': transfer_future
         }
-        main_kwargs.update(extra_main_kwargs)
+        main_kwargs |= extra_main_kwargs
         return main_kwargs
 
     def _register_handlers(self):

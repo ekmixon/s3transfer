@@ -37,8 +37,9 @@ class Uploader(object):
         if args.debug:
             session.set_debug_logger('')
         with TransferManager(client) as manager:
-            getattr(self, 'upload_' + file_type)(
-                manager, args.file_name, args.s3_bucket, args.s3_key)
+            getattr(self, f'upload_{file_type}')(
+                manager, args.file_name, args.s3_bucket, args.s3_key
+            )
 
     def upload_filename(self, manager, filename, bucket, s3_key):
         manager.upload(filename, bucket, s3_key)

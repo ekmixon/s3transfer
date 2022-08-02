@@ -35,11 +35,12 @@ class BaseSubscriber(object):
     @classmethod
     def _validate_subscriber_methods(cls):
         for subscriber_type in cls.VALID_SUBSCRIBER_TYPES:
-            subscriber_method = getattr(cls, 'on_' + subscriber_type)
+            subscriber_method = getattr(cls, f'on_{subscriber_type}')
             if not six.callable(subscriber_method):
                 raise InvalidSubscriberMethodError(
-                    'Subscriber method %s must be callable.' %
-                    subscriber_method)
+                    f'Subscriber method {subscriber_method} must be callable.'
+                )
+
 
             if not accepts_kwargs(subscriber_method):
                 raise InvalidSubscriberMethodError(

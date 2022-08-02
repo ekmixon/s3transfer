@@ -305,8 +305,8 @@ class DownloadSubmissionTask(SubmissionTask):
             if download_manager_cls.is_compatible(fileobj, osutil):
                 return download_manager_cls
         raise RuntimeError(
-            'Output %s of type: %s is not supported.' % (
-                fileobj, type(fileobj)))
+            f'Output {fileobj} of type: {type(fileobj)} is not supported.'
+        )
 
     def _submit(self, client, config, osutil, request_executor, io_executor,
                 transfer_future, bandwidth_limiter=None):
@@ -441,7 +441,7 @@ class DownloadSubmissionTask(SubmissionTask):
             # Inject the Range parameter to the parameters to be passed in
             # as extra args
             extra_args = {'Range': range_parameter}
-            extra_args.update(call_args.extra_args)
+            extra_args |= call_args.extra_args
             finalize_download_invoker.increment()
             # Submit the ranged downloads
             self._transfer_coordinator.submit(
@@ -476,12 +476,8 @@ class DownloadSubmissionTask(SubmissionTask):
     def _calculate_range_param(self, part_size, part_index, num_parts):
         # Used to calculate the Range parameter
         start_range = part_index * part_size
-        if part_index == num_parts - 1:
-            end_range = ''
-        else:
-            end_range = start_range + part_size - 1
-        range_param = 'bytes=%s-%s' % (start_range, end_range)
-        return range_param
+        end_range = '' if part_index == num_parts - 1 else start_range + part_size - 1
+        return f'bytes={start_range}-{end_range}'
 
 
 class GetObjectTask(Task):
@@ -516,7 +512,7 @@ class GetObjectTask(Task):
                     response['Body'], callbacks)
                 if bandwidth_limiter:
                     streaming_body = \
-                        bandwidth_limiter.get_bandwith_limited_stream(
+                            bandwidth_limiter.get_bandwith_limited_stream(
                             streaming_body, self._transfer_coordinator)
 
                 chunks = DownloadChunkIterator(streaming_body, io_chunksize)
@@ -650,13 +646,7 @@ class DownloadChunkIterator(object):
     def __next__(self):
         chunk = self._body.read(self._chunksize)
         self._num_reads += 1
-        if chunk:
-            return chunk
-        elif self._num_reads == 1:
-            # Even though the response may have not had any
-            # content, we still want to account for an empty object's
-            # existence so return the empty chunk for that initial
-            # read.
+        if chunk or self._num_reads == 1:
             return chunk
         raise StopIteration()
 

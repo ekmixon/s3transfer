@@ -14,7 +14,7 @@ import s3transfer
 
 
 KB = 1024
-MB = KB * KB
+MB = KB**2
 GB = MB * KB
 
 ALLOWED_DOWNLOAD_ARGS = [
@@ -26,5 +26,5 @@ ALLOWED_DOWNLOAD_ARGS = [
     'ExpectedBucketOwner',
 ]
 
-USER_AGENT = 's3transfer/%s' % s3transfer.__version__
-PROCESS_USER_AGENT = '%s processpool' % USER_AGENT
+USER_AGENT = f's3transfer/{s3transfer.__version__}'
+PROCESS_USER_AGENT = f'{USER_AGENT} processpool'

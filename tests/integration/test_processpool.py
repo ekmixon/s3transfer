@@ -88,14 +88,15 @@ class TestProcessPoolDownloader(BaseTransferManagerIntegTest):
         # sleeping to exit.
         max_allowed_exit_time = 5
         self.assertLess(
-            end_time - start_time, max_allowed_exit_time,
-            "Failed to exit under %s. Instead exited in %s." % (
-                max_allowed_exit_time, end_time - start_time)
+            end_time - start_time,
+            max_allowed_exit_time,
+            f"Failed to exit under {max_allowed_exit_time}. Instead exited in {end_time - start_time}.",
         )
+
 
         # Make sure the actual file and the temporary do not exist
         # by globbing for the file and any of its extensions
-        possible_matches = glob.glob('%s*' % download_path)
+        possible_matches = glob.glob(f'{download_path}*')
         self.assertEqual(possible_matches, [])
 
     def test_many_files_exits_quickly_on_exception(self):
@@ -105,11 +106,8 @@ class TestProcessPoolDownloader(BaseTransferManagerIntegTest):
             '1mb.txt', filesize=1024 * 1024)
         self.upload_file(filename, '1mb.txt')
 
-        filenames = []
         base_filename = os.path.join(self.files.rootdir, 'file')
-        for i in range(10):
-            filenames.append(base_filename + str(i))
-
+        filenames = [base_filename + str(i) for i in range(10)]
         try:
             with downloader:
                 start_time = time.time()
@@ -126,12 +124,13 @@ class TestProcessPoolDownloader(BaseTransferManagerIntegTest):
         # This means that it should take less than a couple seconds to exit.
         max_allowed_exit_time = 5
         self.assertLess(
-            end_time - start_time, max_allowed_exit_time,
-            "Failed to exit under %s. Instead exited in %s." % (
-                max_allowed_exit_time, end_time - start_time)
+            end_time - start_time,
+            max_allowed_exit_time,
+            f"Failed to exit under {max_allowed_exit_time}. Instead exited in {end_time - start_time}.",
         )
+
 
         # For the transfer that did get cancelled, make sure the temporary
         # file got removed.
-        possible_matches = glob.glob('%s*' % base_filename)
+        possible_matches = glob.glob(f'{base_filename}*')
         self.assertEqual(possible_matches, [])

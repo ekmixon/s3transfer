@@ -102,10 +102,11 @@ class TestDownload(BaseTransferManagerIntegTest):
         max_allowed_exit_time = 5
         actual_time_to_exit = end_time - start_time
         self.assertLess(
-            actual_time_to_exit, max_allowed_exit_time,
-            "Failed to exit under %s. Instead exited in %s." % (
-                max_allowed_exit_time, actual_time_to_exit)
+            actual_time_to_exit,
+            max_allowed_exit_time,
+            f"Failed to exit under {max_allowed_exit_time}. Instead exited in {actual_time_to_exit}.",
         )
+
 
         # Make sure the future was cancelled because of the KeyboardInterrupt
         with self.assertRaisesRegex(CancelledError, 'KeyboardInterrupt()'):
@@ -113,7 +114,7 @@ class TestDownload(BaseTransferManagerIntegTest):
 
         # Make sure the actual file and the temporary do not exist
         # by globbing for the file and any of its extensions
-        possible_matches = glob.glob('%s*' % download_path)
+        possible_matches = glob.glob(f'{download_path}*')
         self.assertEqual(possible_matches, [])
 
     @skip_if_using_serial_implementation(
@@ -134,18 +135,21 @@ class TestDownload(BaseTransferManagerIntegTest):
             'foo.txt', filesize=1024 * 1024)
         self.upload_file(filename, '1mb.txt')
 
-        filenames = []
         futures = []
-        for i in range(10):
-            filenames.append(
-                os.path.join(self.files.rootdir, 'file'+str(i)))
+        filenames = [
+            os.path.join(self.files.rootdir, f'file{str(i)}') for i in range(10)
+        ]
 
         try:
             with transfer_manager:
                 start_time = time.time()
-                for filename in filenames:
-                    futures.append(transfer_manager.download(
-                        self.bucket_name, '1mb.txt', filename))
+                futures.extend(
+                    transfer_manager.download(
+                        self.bucket_name, '1mb.txt', filename
+                    )
+                    for filename in filenames
+                )
+
                 # Raise an exception which should cause the preceding
                 # transfer to cancel and exit quickly
                 raise KeyboardInterrupt()
@@ -156,10 +160,11 @@ class TestDownload(BaseTransferManagerIntegTest):
         # This means that it should take less than a couple seconds to exit.
         max_allowed_exit_time = 5
         self.assertLess(
-            end_time - start_time, max_allowed_exit_time,
-            "Failed to exit under %s. Instead exited in %s." % (
-                max_allowed_exit_time, end_time - start_time)
+            end_time - start_time,
+            max_allowed_exit_time,
+            f"Failed to exit under {max_allowed_exit_time}. Instead exited in {end_time - start_time}.",
         )
+
 
         # Make sure at least one of the futures got cancelled
         with self.assertRaisesRegex(CancelledError, 'KeyboardInterrupt()'):
@@ -168,7 +173,7 @@ class TestDownload(BaseTransferManagerIntegTest):
 
         # For the transfer that did get cancelled, make sure the temporary
         # file got removed.
-        possible_matches = glob.glob('%s*' % future.meta.call_args.fileobj)
+        possible_matches = glob.glob(f'{future.meta.call_args.fileobj}*')
         self.assertEqual(possible_matches, [])
 
     def test_progress_subscribers_on_download(self):

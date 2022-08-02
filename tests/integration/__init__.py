@@ -28,8 +28,7 @@ def recursive_delete(client, bucket_name):
     page = client.get_paginator('list_objects')
     # Use pages paired with batch delete_objects().
     for page in page.paginate(Bucket=bucket_name):
-        keys = [{'Key': obj['Key']} for obj in page.get('Contents', [])]
-        if keys:
+        if keys := [{'Key': obj['Key']} for obj in page.get('Contents', [])]:
             client.delete_objects(Bucket=bucket_name, Delete={'Objects': keys})
     for _ in range(5):
         try:

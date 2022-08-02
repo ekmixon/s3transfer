@@ -210,11 +210,7 @@ class UploadInputManager(object):
         return fileobj
 
     def _get_progress_callbacks(self, transfer_future):
-        callbacks = get_callbacks(transfer_future, 'progress')
-        # We only want to be wrapping the callbacks if there are callbacks to
-        # invoke because we do not want to be doing any unnecessary work if
-        # there are no callbacks to invoke.
-        if callbacks:
+        if callbacks := get_callbacks(transfer_future, 'progress'):
             return [AggregatedProgressCallback(callbacks)]
         return []
 
@@ -310,10 +306,7 @@ class UploadSeekableInputManager(UploadFilenameInputManager):
         return readable(upload_source) and seekable(upload_source)
 
     def stores_body_in_memory(self, operation_name):
-        if operation_name == 'put_object':
-            return False
-        else:
-            return True
+        return operation_name != 'put_object'
 
     def provide_transfer_size(self, transfer_future):
         fileobj = transfer_future.meta.call_args.fileobj
@@ -381,10 +374,7 @@ class UploadNonSeekableInputManager(UploadInputManager):
         fileobj = transfer_future.meta.call_args.fileobj
         threshold = config.multipart_threshold
         self._initial_data = self._read(fileobj, threshold, False)
-        if len(self._initial_data) < threshold:
-            return False
-        else:
-            return True
+        return len(self._initial_data) >= threshold
 
     def get_put_object_body(self, transfer_future):
         callbacks = self._get_progress_callbacks(transfer_future)
@@ -519,8 +509,8 @@ class UploadSubmissionTask(SubmissionTask):
             if upload_manager_cls.is_compatible(fileobj):
                 return upload_manager_cls
         raise RuntimeError(
-            'Input %s of type: %s is not supported.' % (
-                fileobj, type(fileobj)))
+            f'Input {fileobj} of type: {type(fileobj)} is not supported.'
+        )
 
     def _submit(self, client, config, osutil, request_executor,
                 transfer_future, bandwidth_limiter=None):
@@ -606,8 +596,6 @@ class UploadSubmissionTask(SubmissionTask):
             )
         )
 
-        # Submit requests to upload the parts of the file.
-        part_futures = []
         extra_part_args = self._extra_upload_part_args(call_args.extra_args)
 
         # Get any tags that need to be associated to the submitted task
@@ -621,27 +609,25 @@ class UploadSubmissionTask(SubmissionTask):
         part_iterator = upload_input_manager.yield_upload_part_bodies(
             transfer_future, chunksize)
 
-        for part_number, fileobj in part_iterator:
-            part_futures.append(
-                self._transfer_coordinator.submit(
-                    request_executor,
-                    UploadPartTask(
-                        transfer_coordinator=self._transfer_coordinator,
-                        main_kwargs={
-                            'client': client,
-                            'fileobj': fileobj,
-                            'bucket': call_args.bucket,
-                            'key': call_args.key,
-                            'part_number': part_number,
-                            'extra_args': extra_part_args
-                        },
-                        pending_main_kwargs={
-                            'upload_id': create_multipart_future
-                        }
-                    ),
-                    tag=upload_part_tag
-                )
+        part_futures = [
+            self._transfer_coordinator.submit(
+                request_executor,
+                UploadPartTask(
+                    transfer_coordinator=self._transfer_coordinator,
+                    main_kwargs={
+                        'client': client,
+                        'fileobj': fileobj,
+                        'bucket': call_args.bucket,
+                        'key': call_args.key,
+                        'part_number': part_number,
+                        'extra_args': extra_part_args,
+                    },
+                    pending_main_kwargs={'upload_id': create_multipart_future},
+                ),
+                tag=upload_part_tag,
             )
+            for part_number, fileobj in part_iterator
+        ]
 
         complete_multipart_extra_args = self._extra_complete_multipart_args(
             call_args.extra_args)
@@ -673,10 +659,11 @@ class UploadSubmissionTask(SubmissionTask):
         return get_filtered_dict(extra_args, self.COMPLETE_MULTIPART_ARGS)
 
     def _get_upload_task_tag(self, upload_input_manager, operation_name):
-        tag = None
-        if upload_input_manager.stores_body_in_memory(operation_name):
-            tag = IN_MEMORY_UPLOAD_TAG
-        return tag
+        return (
+            IN_MEMORY_UPLOAD_TAG
+            if upload_input_manager.stores_body_in_memory(operation_name)
+            else None
+        )
 
 
 class PutObjectTask(Task):

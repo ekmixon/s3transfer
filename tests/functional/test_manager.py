@@ -79,8 +79,11 @@ class TestTransferManager(StubbedClientTest):
         )
         try:
             with manager:
-                for i in range(num_transfers):
-                    futures.append(manager.delete('mybucket', 'mykey'))
+                futures.extend(
+                    manager.delete('mybucket', 'mykey')
+                    for _ in range(num_transfers)
+                )
+
                 raise ArbitraryException(ref_exception_msg)
         except ArbitraryException:
             # At least one of the submitted futures should have been
@@ -116,8 +119,11 @@ class TestTransferManager(StubbedClientTest):
         )
         try:
             with manager:
-                for i in range(num_transfers):
-                    futures.append(manager.delete('mybucket', 'mykey'))
+                futures.extend(
+                    manager.delete('mybucket', 'mykey')
+                    for _ in range(num_transfers)
+                )
+
                 raise KeyboardInterrupt()
         except KeyboardInterrupt:
             # At least one of the submitted futures should have been
